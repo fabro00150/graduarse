@@ -179,6 +179,7 @@ class SistemaLecturaViewSet(viewsets.ModelViewSet):
         print('📥 upload_foto files:', request.FILES)
 
         usuario_id = request.data.get('usuario')
+        medidor_id = request.data.get('medidor')
         anio = request.data.get('anio')
         mes = request.data.get('mes')
         foto = request.FILES.get('foto')

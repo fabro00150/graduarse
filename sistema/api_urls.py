@@ -18,6 +18,7 @@ router.register(r'lecturas', api_views.SistemaLecturaViewSet, basename='lectura'
 router.register(r'pagos', api_views.SistemaPagoViewSet, basename='pago')
 router.register(r'sectores', api_views.SistemaSectorViewSet, basename='sector')
 
+
 urlpatterns = [
     path('', include(router.urls)),
     path('login/', api_views.login_view, name='login'),
@@ -25,4 +26,5 @@ urlpatterns = [
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('me/', api_views.me_view, name='me'),
+
 ]
