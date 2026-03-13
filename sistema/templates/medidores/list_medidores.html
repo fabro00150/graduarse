@@ -1,0 +1,67 @@
+{% extends "index.html" %}
+{% block content %}
+<h1>Medidores</h1>
+{% if perms.sistema.add_sismedidor %}
+<a href="{% url 'new_medidor' %}" class="btn btn-primary mb-3">Nuevo medidor</a>
+{% endif %}
+<a href="{% url 'mapa_general_medidores' %}" class="btn btn-info mb-3">
+  Ver mapa general
+</a>
+
+<table class="table table-striped" id="table_medidores">
+  <thead>
+    <tr>
+      {% if user.is_staff %}
+      <th>#</th>
+      {% endif %}
+      <th>Número serie</th>
+      <th>Usuario</th>
+      <th>Coordenadas</th>
+      <th>Fecha instalación</th>
+      <th>Observaciones</th>
+      <th>Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for m in medidores %}
+    <tr>
+      {% if user.is_staff %}
+      <td>{{ forloop.counter }}</td>
+      {% endif %}
+      <td>{{ m.numero_serie }}</td>
+      <td>{{ m.usuario.nombres }} {{ m.usuario.apellido_paterno }} {{ m.usuario.apellido_materno|default:"-" }}</td>
+      <td>{{ m.coordenadas }}</td>
+      <td>{{ m.fecha_instalacion }}</td>
+      <td>{{ m.observaciones|default:"-" }}</td>
+      <td>
+        {% if perms.sistema.edit_sismedidor %}
+        <a href="{% url 'edit_medidor' m.id %}" class="btn btn-sm btn-warning">Editar</a>
+        {% endif %}
+        {% if perms.sistema.delete_sismedidor %}
+        {% if not m.tiene_lecturas %}
+          <a href="{% url 'delete_medidor' m.id %}" class="btn btn-sm btn-danger"
+            onclick="return confirm('¿Eliminar medidor?');">
+            Eliminar
+          </a>
+        {% else %}
+          <button type="button" class="btn btn-sm btn-secondary" disabled
+                  title="No se puede eliminar, tiene lecturas/pagos asociados">
+            Eliminar
+          </button>
+        {% endif %}
+        {% endif %}
+      </td>
+
+    </tr>
+    {% empty %}
+    <tr><td colspan="7">No hay medidores registrados.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<script>
+  $(document).ready(function() {
+    $('#table_medidores').DataTable();
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,183 @@
+{% extends 'index.html' %}
+{% block content %}
+<div class="container-fluid">
+  <div class="card">
+    <div class="card-body">
+      <h5 class="card-title fw-semibold mb-4">Nuevo Cliente</h5>
+
+      <div class="card">
+        <div class="card-body">
+          <form action="{% url 'save_user_new' %}" method="post">
+            {% csrf_token %}
+
+            <!-- Checkbox Ecuatoriano -->
+            <div class="mb-3 form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                name="ecuatoriano"
+                id="ecuatoriano"
+                onchange="validarEcuatoriano()"
+              />
+              <label class="form-check-label" for="ecuatoriano">
+                Ecuatoriano (validar cédula)
+              </label>
+            </div>
+
+            <!-- Cédula -->
+            <div class="mb-3">
+              <label class="form-label">Cédula *</label>
+              <input
+                type="text"
+                class="form-control"
+                id="dni_cedula"
+                name="dni_cedula"
+                maxlength="13"
+                required
+              >
+            </div>
+
+            <!-- Nombres -->
+            <div class="mb-3">
+              <label class="form-label">Nombres *</label>
+              <input 
+                type="text" 
+                class="form-control" 
+                id="nombres" 
+                name="nombres" 
+                minlength="10"
+                maxlength="50"
+                required
+                onblur="convertirMayusculas(this)"
+              >
+            </div>
+
+            <!-- Apellidos -->
+            <div class="mb-3">
+              <label class="form-label">Apellido Paterno *</label>
+              <input 
+                type="text" 
+                class="form-control" 
+                id="apellido_paterno" 
+                name="apellido_paterno" 
+                minlength="10"
+                maxlength="50"
+                required
+                onblur="convertirMayusculas(this)"
+              >
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Apellido Materno *</label>
+              <input 
+                type="text" 
+                class="form-control" 
+                id="apellido_materno" 
+                name="apellido_materno" 
+                minlength="10"
+                maxlength="50"
+                required
+                onblur="convertirMayusculas(this)"
+              >
+            </div>
+
+            <!-- Teléfono -->
+            <div class="mb-3">
+              <label class="form-label">Teléfono</label>
+              <input
+                type="text"
+                class="form-control"
+                id="telefono"
+                name="telefono"
+                maxlength="10"
+                oninput="this.value = this.value.replace(/\D/g, '')"
+              >
+            </div>
+
+            <!-- Sector -->
+            <div class="mb-3">
+              <label class="form-label">Sector *</label>
+              <select class="form-select" name="sector" id="sector" required>
+                <option value="">Seleccione un sector</option>
+                {% for sector in sectores %}
+                  <option value="{{ sector.id }}">{{ sector.nombre }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <a href="{% url 'list_users' %}" class="btn btn-secondary">Cancelar</a>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ========== CONVERTIR A MAYÚSCULAS ==========
+  function convertirMayusculas(input) {
+    input.value = input.value.toUpperCase();
+  }
+
+  // ========== VALIDACIÓN CÉDULA ECUATORIANA ==========
+  function validarCedulaEcuatoriana(input) {
+    let cedula = input.value.trim();
+
+    if (cedula.length !== 10 || isNaN(cedula)) {
+      input.setCustomValidity("La cédula debe tener 10 dígitos numéricos.");
+      return;
+    }
+
+    let provincia = parseInt(cedula.substring(0, 2), 10);
+    let tercerDigito = parseInt(cedula.substring(2, 3), 10);
+    let coeficientes = [2, 1, 2, 1, 2, 1, 2, 1, 2];
+
+    if (provincia < 1 || provincia > 24 || tercerDigito >= 6) {
+      input.setCustomValidity("La cédula no es válida.");
+      return;
+    }
+
+    let suma = 0;
+    for (let i = 0; i < 9; i++) {
+      let valor = parseInt(cedula.charAt(i), 10) * coeficientes[i];
+      suma += valor > 9 ? valor - 9 : valor;
+    }
+
+    let digitoVerificador = parseInt(cedula.charAt(9), 10);
+    let resultado = suma % 10 === 0 ? 0 : 10 - (suma % 10);
+
+    if (resultado !== digitoVerificador) {
+      input.setCustomValidity("La cédula no es válida.");
+    } else {
+      input.setCustomValidity("");
+    }
+  }
+
+  function validarEcuatoriano() {
+    let cedula = document.getElementById("dni_cedula");
+    let esEcuatoriano = document.getElementById("ecuatoriano");
+
+    if (!cedula || !esEcuatoriano) return;
+
+    if (esEcuatoriano.checked) {
+      cedula.setAttribute("maxlength", "10");
+      cedula.oninput = function () {
+        this.value = this.value.replace(/\D/g, "");
+        validarCedulaEcuatoriana(this);
+      };
+      validarCedulaEcuatoriana(cedula);
+    } else {
+      cedula.setAttribute("maxlength", "13");
+      cedula.oninput = function () {
+        this.value = this.value.replace(/\D/g, "");
+      };
+      cedula.setCustomValidity("");
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    validarEcuatoriano();
+  });
+</script>
+{% endblock %}
