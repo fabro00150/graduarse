@@ -23,12 +23,12 @@
             <td>{{ sector.descripcion }}</td>
             <td>{{ sector.estado }}</td>
             <td>
-                {% if perms.sistema.change_sismsector %}
+                {% if perms.sistema.change_sistemasector %}
                 <a href="{% url 'edit_sector' sector.id %}"><i class="ti ti-edit"></i></a>
                 {% endif %}
             </td>
             <td>
-                {% if perms.sistema.delete_sismsector %}
+                {% if perms.sistema.delete_sistemasector %}
                 <a href="{% url 'delete_sector' sector.id %}"><i class="ti ti-trash"></i></a>
                 {% endif %}
             </td>

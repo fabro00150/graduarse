@@ -2,16 +2,17 @@
 
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.exceptions import AuthenticationFailed
+from django.contrib.auth.models import User
 
 
 class AppMovilJWTAuthentication(JWTAuthentication):
     """
-    Autenticación JWT que verifica si el usuario es Operador o Superuser.
-    Invalida tokens de usuarios que perdieron el grupo.
+    Autenticación JWT personalizada para la app móvil.
+    Verifica que el usuario pertenezca al grupo 'Operador' o sea superuser.
     """
     
     def authenticate(self, request):
-        # Obtener el usuario normalmente con JWT
+        # Primero autenticar con JWT normal
         result = super().authenticate(request)
         
         if result is None:
@@ -19,19 +20,13 @@ class AppMovilJWTAuthentication(JWTAuthentication):
         
         user, validated_token = result
         
-        # Verificar si el usuario está activo
-        if not user.is_active:
-            raise AuthenticationFailed('Usuario inactivo.')
-        
-        # Verificar si es Operador o Superuser
+        # Verificar que el usuario puede usar la API móvil
         es_operador = user.groups.filter(name='Operador').exists()
         es_superuser = user.is_superuser
         
         if not (es_operador or es_superuser):
-            # INVALIDAR el token
             raise AuthenticationFailed(
-                'No tienes permisos para usar la aplicación móvil. '
-                'Contacta al administrador.'
+                'No tienes permisos para acceder a la API móvil.'
             )
         
-        return user, validated_token
+        return (user, validated_token)

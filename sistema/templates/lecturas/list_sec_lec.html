@@ -16,9 +16,15 @@
       <td>{{ item.anio }}</td>
       <td>{{ item.mes }}</td>
       <td>
-        <a href="{% url 'lecturas_globales' %}?anio={{ item.anio }}&mes={{ item.mes }}">
+        {% if perms.sistema.change_sistemalectura %}
+        <a href="{% url 'lecturas_globales' %}?anio={{ item.anio }}&mes={{ item.mes }}" title="Editar lecturas">
           <i class="ti ti-edit"></i>
         </a>
+        {% else %}
+        <a href="{% url 'lecturas_globales' %}?anio={{ item.anio }}&mes={{ item.mes }}" title="Ver lecturas">
+          <i class="ti ti-eye"></i>
+        </a>
+        {% endif %}
       </td>
     </tr>
     {% endfor %}

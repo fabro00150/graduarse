@@ -26,7 +26,7 @@
             <td>{{ usuario.apellido_paterno }} {{ usuario.apellido_materno }} {{ usuario.nombres }}</td>        
             <td>{{ usuario.sector.nombre }}</td>
             <td>
-                {% if perms.sistema.edit_sistemapago %}
+                {% if perms.sistema.change_sistemapago %}
                 <a class="btn btn-primary" href="{% url 'process_pag_usuario' usuario.id %}">Pagar</a>                
                 {% endif %}
                 

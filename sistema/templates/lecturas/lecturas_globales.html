@@ -76,8 +76,7 @@
                   value="{{ item.lectura_actual }}"
                   class="form-control lectura-actual"
                   max="99999"
-                  {% if perms.sistema.edit_sistemalecturas %}
-                  {% else %}
+                  {% if not perms.sistema.change_sistemalectura %}
                   disabled
                   {% endif %}
                   data-anterior="{{ item.lectura_anterior }}">
@@ -108,7 +107,8 @@
     </tbody>
 
   </table>
-  {% if perms.sistema.edit_sistemalecturas %}
+  
+  {% if perms.sistema.change_sistemalectura %}
   <button type="submit" class="btn btn-success">Guardar lecturas</button>
   {% endif %}
 </form>

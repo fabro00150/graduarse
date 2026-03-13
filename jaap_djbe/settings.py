@@ -11,20 +11,6 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
-#CSRF_TRUSTED_ORIGINS = [
-#    "https://jaappbe.org",
-#    "http://jaappbe.org",
-#    "https://www.jaappbe.org",
-#    "38.242.141.194",
-#]
-
-#ALLOWED_HOSTS = [
-#	"www.jaappbe.org",
-#	"jaappbe.org",
-#	"localhost",
-#	"127.0.0.1",
-#]
-
 ALLOWED_HOSTS = ["*"]
 
 INSTALLED_APPS = [
@@ -40,7 +26,6 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "qr_code",
     'rest_framework_simplejwt.token_blacklist',
-    
 ]
 
 MIDDLEWARE = [
@@ -100,14 +85,9 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "es"
-
 USE_TZ = True
-
 TIME_ZONE = "America/Guayaquil"
-
 USE_I18N = True
-
-USE_TZ = True
 
 STATIC_URL = "static/"
 STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
@@ -118,23 +98,24 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_REDIRECT_URL = 'index'
 LOGOUT_REDIRECT_URL = 'login'  
 
+# ✅ REST Framework - Configuración corregida
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'sistema.authentication.AppMovilJWTAuthentication',
-                
+        'sistema.authentication.AppMovilJWTAuthentication',  # Asegúrate que coincida con el nombre de la clase
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',        
-        'rest_framework.permissions.DjangoModelPermissions',
+        'rest_framework.permissions.IsAuthenticated',
     ),
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.JSONRenderer',
     ),
 }
+
+# ✅ JWT Configuration
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'ROTATE_REFRESH_TOKENS': False,
+    'ROTATE_REFRESH_TOKENS': True,  # ✅ Cambiado a True
     'BLACKLIST_AFTER_ROTATION': True,
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': SECRET_KEY,
@@ -147,7 +128,3 @@ MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL = '/media/'
 
 os.makedirs(MEDIA_ROOT, exist_ok=True)
-
-#CSRF_FAILURE_VIEW = 'sistema.views.error_403'
-
-from django.contrib.staticfiles.storage import ManifestStaticFilesStorage

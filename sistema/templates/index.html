@@ -40,8 +40,6 @@
   <div class="page-wrapper" id="main-wrapper" data-layout="vertical" data-navbarbg="skin6" data-sidebartype="full"
     data-sidebar-position="dynamic" data-header-position="dynamic">    
     <!-- Sidebar Start -->
-    <!-- En tu template base, reemplaza el sidebar por este -->
-
     <aside class="left-sidebar">
         <div>
             <div class="brand-logo d-flex align-items-center justify-content-between">
@@ -68,7 +66,7 @@
                         </a>
                     </li>
 
-                    <!-- LECTURAS - Solo si tiene permiso -->
+                    <!-- LECTURAS -->
                     {% if perms.sistema.view_sistemalectura %}
                     <li class="sidebar-item">
                         <a class="sidebar-link" href="{% url 'list_meses_lec' %}" aria-expanded="false">
@@ -80,7 +78,7 @@
                     </li>
                     {% endif %}
 
-                    <!-- PAGOS - Solo si tiene permiso -->
+                    <!-- PAGOS -->
                     {% if perms.sistema.view_sistemapago %}
                     <li class="sidebar-item">
                         <a class="sidebar-link" href="{% url 'list_pag_usuarios' %}" aria-expanded="false">
@@ -101,7 +99,7 @@
                     </li>
                     {% endif %}
 
-                    <!-- USUARIOS - Solo si tiene permiso -->
+                    <!-- USUARIOS -->
                     {% if perms.sistema.view_sistemausuario %}
                     <li class="sidebar-item">
                         <a class="sidebar-link justify-content-between has-arrow" href="javascript:void(0)" aria-expanded="false">
@@ -137,7 +135,7 @@
                     </li>
                     {% endif %}
 
-                    <!-- SECTORES - Solo si tiene permiso -->
+                    <!-- SECTORES -->
                     {% if perms.sistema.view_sistemasector %}
                     <li class="sidebar-item">
                         <a class="sidebar-link justify-content-between has-arrow" href="javascript:void(0)" aria-expanded="false">
@@ -173,7 +171,7 @@
                     </li>
                     {% endif %}
 
-                    <!-- EVENTOS - Solo si tiene permiso -->
+                    <!-- EVENTOS -->
                     {% if perms.sistema.view_sistemaevento %}
                     <li class="sidebar-item">
                         <a class="sidebar-link" href="{% url 'list_tipo_eventos' %}" aria-expanded="false">
@@ -185,7 +183,7 @@
                     </li>
                     {% endif %}
 
-                    <!-- TARIFAS - Solo si tiene permiso -->
+                    <!-- TARIFAS -->
                     {% if perms.sistema.view_sistematarifa %}
                     <li class="sidebar-item">
                         <a class="sidebar-link" href="{% url 'list_tarifas' %}" aria-expanded="false">
@@ -197,7 +195,7 @@
                     </li>
                     {% endif %}
 
-                    <!-- MEDIDORES - Solo si tiene permiso -->
+                    <!-- MEDIDORES -->
                     {% if perms.sistema.view_sistemamedidor %}
                     <li class="sidebar-item">
                         <a class="sidebar-link" href="{% url 'list_medidores' %}" aria-expanded="false">
@@ -209,7 +207,7 @@
                     </li>
                     {% endif %}
 
-                    <!-- REPORTES - Solo si tiene permiso de ver lecturas o pagos -->
+                    <!-- REPORTES -->
                     {% if perms.sistema.view_sistemalectura or perms.sistema.view_sistemapago %}
                     <li class="sidebar-item">
                         <a class="sidebar-link justify-content-between has-arrow" href="javascript:void(0)" aria-expanded="false">
@@ -307,10 +305,11 @@
         </div>
     </aside>
     <!--  Sidebar End -->
+    
     <!--  Main wrapper -->
     <div class="body-wrapper">
     
-      <!--  Header Start Parte superior, cuenta con el menu lateral -->
+      <!--  Header Start -->
       <header class="app-header">
         <nav class="navbar navbar-expand-lg navbar-light">
           <ul class="navbar-nav">
@@ -366,8 +365,7 @@
         </nav>
         
       </header>
-
-      <!--  Header End Parte superior, cuenta con el menu lateral-->
+      <!--  Header End -->
         
       <div class="body-wrapper-inner">
         <div class="container-fluid">
@@ -377,10 +375,10 @@
 
             {% if user.is_staff %}
             <!-- ==================== DASHBOARD ADMIN ==================== -->
+            
             <!-- KPIs PRINCIPALES -->
             <div class="col-12">
               <div class="row">
-                <!-- Total Usuarios -->
                 <div class="col-sm-6 col-lg-3">
                   <div class="card">
                     <div class="card-body">
@@ -397,7 +395,6 @@
                   </div>
                 </div>
                 
-                <!-- Medidores Activos -->
                 <div class="col-sm-6 col-lg-3">
                   <div class="card">
                     <div class="card-body">
@@ -414,11 +411,10 @@
                   </div>
                 </div>
                 
-                <!-- Recaudación del Mes -->
                 <div class="col-sm-6 col-lg-3">
                   <div class="card">
                     <div class="card-body">
-                      <div class="d-flex align-items-center">
+                      <div class="d-flex align-items-center">                        
                         <div class="ms-3">
                           <h6 class="mb-0 text-muted">Recaudado Mes</h6>
                           <h4 class="mb-0 fw-bold">${{ recaudado_mes|floatformat:2 }}</h4>
@@ -428,7 +424,6 @@
                   </div>
                 </div>
                 
-                <!-- Pagos Pendientes -->
                 <div class="col-sm-6 col-lg-3">
                   <div class="card">
                     <div class="card-body">
@@ -451,9 +446,7 @@
                   <div class="d-md-flex align-items-center">
                     <div>
                       <h4 class="card-title">Consumo y Recaudación Mensual</h4>
-                      <p class="card-subtitle">
-                        Consumo (m³) vs Monto Recaudado ($)
-                      </p>
+                      <p class="card-subtitle">Consumo (m³) vs Monto Recaudado ($)</p>
                     </div>
                     <div class="ms-auto">
                       <ul class="list-unstyled mb-0 d-flex gap-3">
@@ -522,9 +515,7 @@
                     </span>
                     <div>
                       <h6 class="mb-0 text-muted">Mayor consumo</h6>
-                      <span class="text-dark fw-medium">
-                        {{ tc.usuario__apellido_paterno }} {{ tc.usuario__nombres }}
-                      </span>
+                      <span class="text-dark fw-medium">{{ tc.usuario__apellido_paterno }} {{ tc.usuario__nombres }}</span>
                       <br>
                       <span class="text-muted small">{{ tc.total }} m³</span>
                     </div>
@@ -542,9 +533,7 @@
                   <div class="d-md-flex align-items-center">
                     <div>
                       <h4 class="card-title">Consumo y Recaudación por Sector</h4>
-                      <p class="card-subtitle">
-                        Sectores ordenados por consumo y monto recaudado
-                      </p>
+                      <p class="card-subtitle">Sectores ordenados por consumo y monto recaudado</p>
                     </div>
                   </div>
                   <div class="table-responsive mt-4">
@@ -651,11 +640,6 @@
               </div>
             </div>
 
-            <script>
-              window.dashboardData = {{ chart_data_json|safe }};
-            </script>
-            <script src="{% static 'assets/js/dashboard.js' %}"></script>
-
             {% else %}
 
             <!-- ==================== DASHBOARD USUARIO NORMAL ==================== -->
@@ -675,7 +659,6 @@
               <h5 class="card-title mb-3">Accesos Rápidos</h5>
               <div class="row">
                 
-                <!-- Lecturas -->
                 {% if perms.sistema.view_sistemalectura %}
                 <div class="col-sm-6 col-lg-3 mb-3">
                   <a href="{% url 'list_meses_lec' %}" class="text-decoration-none">
@@ -692,7 +675,6 @@
                 </div>
                 {% endif %}
                 
-                <!-- Pagos -->
                 {% if perms.sistema.view_sistemapago %}
                 <div class="col-sm-6 col-lg-3 mb-3">
                   <a href="{% url 'list_pag_usuarios' %}" class="text-decoration-none">
@@ -709,7 +691,6 @@
                 </div>
                 {% endif %}
                 
-                <!-- Usuarios -->
                 {% if perms.sistema.view_sistemausuario %}
                 <div class="col-sm-6 col-lg-3 mb-3">
                   <a href="{% url 'list_users' %}" class="text-decoration-none">
@@ -726,7 +707,6 @@
                 </div>
                 {% endif %}
                 
-                <!-- Medidores -->
                 {% if perms.sistema.view_sistemamedidor %}
                 <div class="col-sm-6 col-lg-3 mb-3">
                   <a href="{% url 'list_medidores' %}" class="text-decoration-none">
@@ -743,7 +723,6 @@
                 </div>
                 {% endif %}
                 
-                <!-- Sectores -->
                 {% if perms.sistema.view_sistemasector %}
                 <div class="col-sm-6 col-lg-3 mb-3">
                   <a href="{% url 'list_sectors' %}" class="text-decoration-none">
@@ -760,7 +739,6 @@
                 </div>
                 {% endif %}
                 
-                <!-- Reportes -->
                 {% if perms.sistema.view_sistemalectura or perms.sistema.view_sistemapago %}
                 <div class="col-sm-6 col-lg-3 mb-3">
                   <a href="{% url 'reporte_pagos' %}" class="text-decoration-none">
@@ -777,7 +755,6 @@
                 </div>
                 {% endif %}
                 
-                <!-- Tarifas -->
                 {% if perms.sistema.view_sistematarifa %}
                 <div class="col-sm-6 col-lg-3 mb-3">
                   <a href="{% url 'list_tarifas' %}" class="text-decoration-none">
@@ -905,6 +882,15 @@
             </style>
 
             {% endif %}
+            
+            <!-- Scripts del dashboard FUERA del if/else -->
+            {% if user.is_staff %}
+            <script>
+              window.dashboardData = {{ chart_data_json|safe }};
+            </script>
+            <script src="{% static 'assets/js/dashboard.js' %}"></script>
+            {% endif %}
+            
             {% endblock %}
           </div>
           <div class="py-6 px-6 text-center">
@@ -915,6 +901,8 @@
       </div>
     </div>
   </div> 
+  
+  <!-- Modal Instalación APK -->
   <div class="modal fade" id="modalInstalacionApk" tabindex="-1" aria-labelledby="modalInstalacionApkLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content">
@@ -954,6 +942,7 @@
           </div>
       </div>
   </div>
+  
   <script src="{% static 'assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js' %}"></script>
   <script src="{% static 'assets/js/sidebarmenu.js' %}"></script>
   <script src="{% static 'assets/js/app.min.js' %}"></script>

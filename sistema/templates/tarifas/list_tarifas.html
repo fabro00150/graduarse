@@ -27,10 +27,10 @@
                 {% endif %}
             </td>
             <td>
-                {% if perms.sistema.change_sismtarifa %}
+                {% if perms.sistema.change_sistematarifa %}
                 <a href="{% url 'edit_tarifa' tarifa.id %}"><i class="ti ti-edit"></i></a>
                 {% endif %}
-                {% if perms.sistema.delete_sismtarifa %}
+                {% if perms.sistema.delete_sistematarifa %}
                 <a href="{% url 'delete_tarifa' tarifa.id %}"><i class="ti ti-trash"></i></a>
                 {% endif %}
             </td>
@@ -38,9 +38,10 @@
         {% endfor %}
     </tbody>
 </table>
-{% if perms.sistema.add_sismtarifa %}
+{% if perms.sistema.add_sistematarifa %}
 <a href="{% url 'new_tarifa' %}" class="btn btn-primary">Crear tarifa</a>
 {% endif %}
+
 <script>
     $(document).ready(function() {
         $('#table_tarifas').DataTable({

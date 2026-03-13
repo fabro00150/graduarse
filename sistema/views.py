@@ -1,24 +1,45 @@
-from django.shortcuts import render, redirect 
-from sistema.models import SistemaUsuario, SistemaSector, SistemaEvento, SistemaLectura, SistemaPago, SistemaTarifa
+# sistema/views.py
+from django.shortcuts import render, redirect, get_object_or_404
+from sistema.models import (
+    SistemaUsuario, SistemaSector, SistemaEvento, SistemaLectura, 
+    SistemaPago, SistemaTarifa, SistemaMedidor, SistemaAsistencia
+)
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth import login, logout as auth_login, logout
+from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth import logout
 from django.db.models import Sum, Count, Q, Prefetch, F, Exists, OuterRef
 from django.db.models.functions import TruncMonth
-from django.http import JsonResponse
+from django.http import JsonResponse, FileResponse, Http404
 from decimal import Decimal
 from datetime import date
 from django.urls import reverse
 from django.utils import timezone
-import json
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User, Group, Permission
 from django.contrib.auth.hashers import make_password
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
-from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.utils.decorators import method_decorator
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+import json
+import os
+from django.conf import settings
+
+from rest_framework import viewsets, permissions, status
+from rest_framework.permissions import DjangoModelPermissions
+from rest_framework.response import Response
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .serializers import (
+    SistemaUsuarioSerializer, SistemaEventoSerializer, SistemaAsistenciaSerializer,
+    SistemaLecturaSerializer, SistemaPagoSerializer, SistemaMedidorSerializer,
+    SistemaTarifaSerializer
+)
+
+
+# =====================================================
+# DASHBOARD PRINCIPAL
+# =====================================================
 
 @login_required
 def index(request):
@@ -65,7 +86,10 @@ def index(request):
     pagos_pendientes = SistemaPago.objects.filter(estado=False).count()
     
     # Total que debería haberse recaudado (para eficiencia)
-    total_esperado = lecturas_mes_qs.count() * (SistemaTarifa.objects.filter(activa=True).first().tarifa or Decimal('1'))
+    tarifa_activa = SistemaTarifa.objects.filter(activa=True).first()
+    tarifa_valor = tarifa_activa.tarifa if tarifa_activa else Decimal('1')
+    total_esperado = lecturas_mes_qs.count() * tarifa_valor
+    
     if total_esperado > 0:
         eficiencia_recaudacion = round((recaudado_mes / total_esperado) * 100, 1)
     else:
@@ -183,8 +207,12 @@ def index(request):
         'eventos': eventos,
         'chart_data_json': json.dumps(chart_data),
     })
-    
-# =============Medidores============
+
+
+# =====================================================
+# MEDIDORES
+# =====================================================
+
 @login_required
 @permission_required('sistema.view_sistemamedidor', raise_exception=True)
 def list_medidores(request):
@@ -220,7 +248,7 @@ def save_new_medidor(request):
 
             medidor = SistemaMedidor()
             medidor.numero_serie = request.POST['numero_serie']
-            medidor.coordenadas = request.POST['coordenadas']  # "lat,lng"
+            medidor.coordenadas = request.POST['coordenadas']
             medidor.observaciones = request.POST.get('observaciones', '')
             medidor.fecha_instalacion = request.POST['fecha_instalacion']
             medidor.usuario = usuario
@@ -274,7 +302,6 @@ def delete_medidor(request, id):
 
     tiene_lecturas = SistemaLectura.objects.filter(medidor=medidor).exists()
 
-
     if tiene_lecturas:
         messages.error(
             request,
@@ -289,6 +316,7 @@ def delete_medidor(request, id):
         messages.error(request, f'Error al eliminar medidor: {e}')
 
     return redirect('list_medidores')
+
 
 @login_required
 @permission_required('sistema.view_sistemamedidor', raise_exception=True)
@@ -325,7 +353,11 @@ def mapa_general_medidores(request):
         "puntos_json": json.dumps(puntos),
     })
 
-# =============Usuarios============
+
+# =====================================================
+# USUARIOS
+# =====================================================
+
 @login_required
 @permission_required('sistema.view_sistemausuario', raise_exception=True)
 def list_users(request):    
@@ -333,12 +365,14 @@ def list_users(request):
     sectores = SistemaSector.objects.all()
     return render(request, 'usuarios/list_users.html', {'usuarios': usuarios, 'sectores': sectores})
 
+
 @login_required
 @permission_required('sistema.change_sistemausuario', raise_exception=True)
 def edit_user(request, id):
     usuario = SistemaUsuario.objects.get(id=id)
     sectores = SistemaSector.objects.all()
     return render(request, 'usuarios/edit_user.html', {'usuario': usuario, 'sectores': sectores})
+
 
 @login_required
 @permission_required('sistema.change_sistemausuario', raise_exception=True)
@@ -350,7 +384,6 @@ def save_user(request, id):
     usuario.apellido_materno = request.POST.get('apellido_materno', '').strip().upper()
     usuario.telefono = request.POST.get('telefono', '').strip()
           
-    
     sector_id = request.POST.get('sector')
     if sector_id:
         usuario.sector = SistemaSector.objects.get(id=sector_id)
@@ -359,11 +392,13 @@ def save_user(request, id):
     messages.success(request, 'Usuario guardado correctamente')
     return redirect('list_users')
 
+
 @login_required
 @permission_required('sistema.add_sistemausuario', raise_exception=True)
 def new_user(request):
     sectores = SistemaSector.objects.all()
     return render(request, 'usuarios/new_user.html', {'sectores': sectores})
+
 
 @login_required
 @permission_required('sistema.add_sistemausuario', raise_exception=True)
@@ -384,6 +419,7 @@ def save_user_new(request):
         messages.error(request, f'Error al guardar el usuario: {e}')
         return redirect('list_users')
 
+
 @login_required
 @permission_required('sistema.delete_sistemausuario', raise_exception=True)
 def delete_user(request, id):
@@ -395,19 +431,25 @@ def delete_user(request, id):
     except Exception as e:
         messages.error(request, f'Error al eliminar el usuario: {e}')
         return redirect('list_users')
-    
-# =============Sectores============
+
+
+# =====================================================
+# SECTORES
+# =====================================================
+
 @login_required
 @permission_required('sistema.view_sistemasector', raise_exception=True)
 def list_sectors(request):    
     sectores = SistemaSector.objects.all()
     return render(request, 'sectores/list_sector.html', {'sectores': sectores})
 
+
 @login_required
 @permission_required('sistema.change_sistemasector', raise_exception=True)
 def edit_sector(request, id):
     sector = SistemaSector.objects.get(id=id)
     return render(request, 'sectores/edit_sector.html', {'sector': sector})
+
 
 @login_required
 @permission_required('sistema.change_sistemasector', raise_exception=True)
@@ -424,10 +466,12 @@ def save_edit_sector(request, id):
         messages.error(request, 'Error al editar el sector')
         return render(request, 'sectores/list_sector.html', {'sectores': SistemaSector.objects.all()})
 
+
 @login_required
 @permission_required('sistema.add_sistemasector', raise_exception=True)
 def new_sector(request):
     return render(request, 'sectores/new_sector.html')
+
 
 @login_required
 @permission_required('sistema.add_sistemasector', raise_exception=True)
@@ -444,6 +488,7 @@ def save_sector_new(request):
         messages.error(request, 'Error al guardar el sector')
         return render(request, 'sectores/list_sector.html', {'sectores': SistemaSector.objects.all()})
 
+
 @login_required
 @permission_required('sistema.delete_sistemasector', raise_exception=True)
 def delete_sector(request, id):
@@ -456,17 +501,25 @@ def delete_sector(request, id):
         messages.error(request, 'Error al eliminar el sector')
         return render(request, 'sectores/list_sector.html', {'sectores': SistemaSector.objects.all()})
 
-# =============Tipos de Eventos============
+
+# =====================================================
+# TIPOS DE EVENTOS
+# =====================================================
+
 @login_required
 @permission_required('sistema.view_sistemaevento', raise_exception=True)
 def list_tipo_eventos(request):    
     tipo_eventos = SistemaEvento.objects.all()
     return render(request, 'eventos/list_tipo_evento.html', {'tipo_eventos': tipo_eventos})
+
+
 @login_required
 @permission_required('sistema.change_sistemaevento', raise_exception=True)
 def edit_tipo_evento(request, id):
     tipo_evento = SistemaEvento.objects.get(id=id)
     return render(request, 'eventos/edit_tipo_evento.html', {'tipo_evento': tipo_evento})
+
+
 @login_required
 @permission_required('sistema.change_sistemaevento', raise_exception=True)
 def save_edit_tipo_evento(request, id):
@@ -482,10 +535,14 @@ def save_edit_tipo_evento(request, id):
     except Exception as e:
         messages.error(request, 'Error al editar el tipo de evento')
     return render(request, 'eventos/list_tipo_evento.html', {'tipo_eventos': SistemaEvento.objects.all()})
+
+
 @login_required
 @permission_required('sistema.add_sistemaevento', raise_exception=True)
 def new_tipo_evento(request):
     return render(request, 'eventos/new_tipo_evento.html')
+
+
 @login_required
 @permission_required('sistema.add_sistemaevento', raise_exception=True)
 def save_tipo_evento_new(request):
@@ -501,6 +558,8 @@ def save_tipo_evento_new(request):
     except Exception as e:
         messages.error(request, 'Error al guardar el tipo de evento')
         return render(request, 'eventos/list_tipo_evento.html', {'tipo_eventos': SistemaEvento.objects.all()})
+
+
 @login_required
 @permission_required('sistema.delete_sistemaevento', raise_exception=True)
 def delete_tipo_evento(request, id):
@@ -512,9 +571,7 @@ def delete_tipo_evento(request, id):
     except Exception as e:
         messages.error(request, 'Error al eliminar el tipo de evento')
         return render(request, 'eventos/list_tipo_evento.html', {'tipo_eventos': SistemaEvento.objects.all()})
-    
-from django.db.models.signals import post_save
-from django.dispatch import receiver
+
 
 @receiver(post_save, sender=SistemaEvento)
 def crear_asistencias_para_evento(sender, instance, created, **kwargs):
@@ -532,10 +589,9 @@ def crear_asistencias_para_evento(sender, instance, created, **kwargs):
         )
 
 
-
-# =============Lecturas============
-from datetime import date
-from django.shortcuts import get_object_or_404
+# =====================================================
+# LECTURAS
+# =====================================================
 
 @login_required
 @permission_required('sistema.view_sistemalectura', raise_exception=True)
@@ -548,7 +604,8 @@ def list_meses_lecturas(request):
     return render(request, 'lecturas/list_sec_lec.html', {
         'meses': meses,
     })
-    
+
+
 @login_required
 @permission_required('sistema.view_sistemalectura', raise_exception=True)
 def lecturas_globales(request):
@@ -615,7 +672,7 @@ def lecturas_globales(request):
             "foto_url": lectura_actual.foto.url if (lectura_actual and lectura_actual.foto) else None,
         })
 
-    # ordenar y consumo_str como ya definimos antes
+    # ordenar por consumo alto primero
     datos.sort(
         key=lambda x: (
             not (x["consumo"] is not None and x["consumo"] > 20),
@@ -629,7 +686,6 @@ def lecturas_globales(request):
     for d in datos:
         d["consumo_str"] = "" if d["consumo"] is None else d["consumo"]
 
-
     return render(request, "lecturas/lecturas_globales.html", {
         "anio_actual": anio_actual,
         "mes_actual": mes_actual,
@@ -637,7 +693,8 @@ def lecturas_globales(request):
         "lista_meses": lista_meses,
         "usuarios": datos,
     })
-    
+
+
 @login_required
 @permission_required('sistema.change_sistemalectura', raise_exception=True)
 def save_lecturas_globales(request):
@@ -707,7 +764,10 @@ def save_lecturas_globales(request):
 
     return redirect("list_meses_lec")
 
-# =============Tarifas============
+
+# =====================================================
+# TARIFAS
+# =====================================================
 
 @login_required
 @permission_required('sistema.view_sistematarifa', raise_exception=True)
@@ -787,13 +847,18 @@ def delete_tarifa(request, id):
 
     return redirect('list_tarifas')
 
-#======== PAGOS ==================
+
+# =====================================================
+# PAGOS
+# =====================================================
+
 @login_required
 @permission_required('sistema.view_sistemapago', raise_exception=True)
 def list_pag_usuarios(request):
     usuarios = SistemaUsuario.objects.all()
     sectores = SistemaSector.objects.all()
     return render(request, 'pagos/list_pag_usuarios.html', {'usuarios': usuarios, 'sectores': sectores})
+
 
 @login_required
 @permission_required('sistema.view_sistemapago', raise_exception=True)
@@ -817,7 +882,7 @@ def process_pag_usuario(request, id):
         .select_related('medidor')
         .order_by('anio', 'mes', 'medidor_id')
     )
-    # si se seleccionó un medidor, se filtran lecturas para el recibo/gráfico;
+    
     lecturas_filtradas = lecturas_qs
     if medidor_id_int:
         lecturas_filtradas = lecturas_qs.filter(medidor_id=medidor_id_int)
@@ -866,7 +931,6 @@ def process_pag_usuario(request, id):
 
         lectura_anterior = lectura
 
-    # lógica de lectura_recibo igual, pero sobre datos (ya filtrados por medidor)
     anio_recibo = request.GET.get("anio")
     mes_recibo = request.GET.get("mes")
     lectura_recibo = None
@@ -898,16 +962,15 @@ def process_pag_usuario(request, id):
         "tarifa": tarifa_valor,
         "auto_print": auto_print,
         "medidores": medidores_usuario,
-        "medidor_id": medidor_id,  # para saber cuál está seleccionado
+        "medidor_id": medidor_id,
     })
 
-    
+
 @login_required
 @permission_required('sistema.change_sistemapago', raise_exception=True)
 def registrar_pago(request, usuario_id, anio, mes, medidor_id):
     usuario = get_object_or_404(SistemaUsuario, id=usuario_id)
 
-    # filtros para la lectura actual
     filtros_lectura = {"usuario": usuario, "anio": anio, "mes": mes}
     if medidor_id != 0:
         filtros_lectura["medidor_id"] = medidor_id
@@ -929,7 +992,6 @@ def registrar_pago(request, usuario_id, anio, mes, medidor_id):
         messages.error(request, "No existe tarifa activa para calcular el pago")
         return redirect("process_pag_usuario", id=usuario.id)
 
-    # calcular mes anterior (para el mismo medidor)
     if mes == 1:
         anio_anterior, mes_anterior = anio - 1, 12
     else:
@@ -953,7 +1015,6 @@ def registrar_pago(request, usuario_id, anio, mes, medidor_id):
 
     monto = consumo_periodo * tarifa_activa.tarifa
 
-    # asociar medidor si la lectura no tiene (caso usuario con 1 medidor y medidor_id=0)
     if lectura.medidor_id is None and medidor_id == 0:
         medidores = list(SistemaMedidor.objects.filter(usuario=usuario).order_by("id"))
         if len(medidores) == 1:
@@ -974,6 +1035,7 @@ def registrar_pago(request, usuario_id, anio, mes, medidor_id):
     url = reverse("process_pag_usuario", kwargs={"id": usuario.id})
     return redirect(f"{url}?anio={anio}&mes={mes}&medidor_id={medidor_id}&auto_print=1")
 
+
 @login_required
 @permission_required('sistema.change_sistemapago', raise_exception=True)
 def anular_pago(request, pago_id):
@@ -986,8 +1048,11 @@ def anular_pago(request, pago_id):
     return redirect("process_pag_usuario", id=usuario_id)
 
 
-# =============Login y Logout=============
-def login(request):
+# =====================================================
+# LOGIN Y LOGOUT
+# =====================================================
+
+def login_view(request):
     return render(request, "registration/login.html")
 
 
@@ -995,7 +1060,11 @@ def exit(request):
     logout(request)    
     return redirect("index")
 
-# =============Asistencias a Eventos============
+
+# =====================================================
+# ASISTENCIAS A EVENTOS
+# =====================================================
+
 @login_required
 @permission_required('sistema.view_sistemaasistencia', raise_exception=True)
 def asistencia_evento(request, evento_id):
@@ -1025,8 +1094,9 @@ def asistencia_evento(request, evento_id):
         "asistencias": asistencias
     })
 
+
 @login_required
-@permission_required('sistema.change_asistencia', raise_exception=True)
+@permission_required('sistema.change_sistemaasistencia', raise_exception=True)  # ✅ CORREGIDO
 def save_asistencias(request, evento_id):
     evento = get_object_or_404(SistemaEvento, id=evento_id)
     if request.method == "POST":
@@ -1039,19 +1109,19 @@ def save_asistencias(request, evento_id):
         return redirect("asistencia_evento", evento_id=evento.id)
 
 
-# reportes
-# sistema/views.py
+# =====================================================
+# REPORTES
+# =====================================================
 
 @login_required
 @permission_required('sistema.view_sistemapago', raise_exception=True)
 def reporte_pagos(request):
     hoy = date.today()
 
-    # filtros
     anio = int(request.GET.get("anio", hoy.year))
-    mes = request.GET.get("mes")              # "" o "1".."12"
-    sector_id = request.GET.get("sector", "") # "" o id
-    estado = request.GET.get("estado", "")    # "" / "pagado" / "pendiente"
+    mes = request.GET.get("mes")
+    sector_id = request.GET.get("sector", "")
+    estado = request.GET.get("estado", "")
 
     usuarios_qs = (
         SistemaUsuario.objects
@@ -1064,17 +1134,14 @@ def reporte_pagos(request):
 
     filas = []
     
-    # Obtener todos los medidores con sus lecturas
     medidores_qs = SistemaMedidor.objects.select_related('usuario__sector').all()
     
     for medidor in medidores_qs:
         usuario = medidor.usuario
         
-        # Filtrar por sector si se especifica
         if sector_id and str(usuario.sector_id) != sector_id:
             continue
         
-        # Filtrar lecturas por año y mes
         lecturas_qs = SistemaLectura.objects.filter(
             usuario=usuario, 
             medidor=medidor,
@@ -1084,10 +1151,8 @@ def reporte_pagos(request):
             lecturas_qs = lecturas_qs.filter(mes=int(mes))
         
         for lectura in lecturas_qs:
-            # Obtener o crear pago
             pago = SistemaPago.objects.filter(lectura=lectura, usuario=usuario).first()
             
-            # Calcular consumo (diferencia con lectura anterior)
             if lectura.mes == 1:
                 anio_ant, mes_ant = anio - 1, 12
             else:
@@ -1107,13 +1172,11 @@ def reporte_pagos(request):
             
             pagado = bool(pago and pago.estado)
             
-            # Filtro por estado
             if estado == "pagado" and not pagado:
                 continue
             if estado == "pendiente" and pagado:
                 continue
             
-            # Calcular monto
             tarifa_activa = SistemaTarifa.objects.filter(activa=True).first()
             tarifa_valor = tarifa_activa.tarifa if tarifa_activa else Decimal("0.00")
             
@@ -1137,7 +1200,6 @@ def reporte_pagos(request):
                 "fecha_pago": fecha_pago,
             })
 
-    # Ordenar filas
     filas.sort(key=lambda x: (
         x["sector"].nombre if x["sector"] else "",
         x["usuario"].apellido_paterno,
@@ -1155,7 +1217,6 @@ def reporte_pagos(request):
     ]
     sectores = SistemaSector.objects.all().order_by("nombre")
 
-    # Totales
     total_consumo = sum(f["consumo"] or 0 for f in filas)
     total_monto = sum(f["monto"] or 0 for f in filas)
     total_pagados = sum(1 for f in filas if f["pagado"])
@@ -1170,7 +1231,7 @@ def reporte_pagos(request):
         "lista_anios": lista_anios,
         "lista_meses": lista_meses,
         "sectores": sectores,
-        "usuario_logueado": request.user,  # Usuario que exporta
+        "usuario_logueado": request.user,
         "total_consumo": total_consumo,
         "total_monto": total_monto,
         "total_pagados": total_pagados,
@@ -1179,8 +1240,6 @@ def reporte_pagos(request):
     }
     return render(request, "reportes/reporte_pagos.html", context)
 
-
-# sistema/views.py
 
 @login_required
 @permission_required('sistema.view_sistemalectura', raise_exception=True)
@@ -1191,7 +1250,6 @@ def reporte_lecturas(request):
     mes = request.GET.get("mes")
     sector_id = request.GET.get("sector", "")
 
-    # Query base de medidores con lecturas
     medidores_qs = SistemaMedidor.objects.select_related('usuario__sector').all()
     
     if sector_id:
@@ -1204,7 +1262,6 @@ def reporte_lecturas(request):
     for medidor in medidores_qs:
         usuario = medidor.usuario
         
-        # Filtrar lecturas
         lecturas_qs = SistemaLectura.objects.filter(
             usuario=usuario,
             medidor=medidor,
@@ -1215,7 +1272,6 @@ def reporte_lecturas(request):
             lecturas_qs = lecturas_qs.filter(mes=int(mes))
         
         for lectura in lecturas_qs:
-            # Calcular consumo (diferencia con lectura anterior)
             if lectura.mes == 1:
                 anio_ant, mes_ant = anio - 1, 12
             else:
@@ -1243,7 +1299,6 @@ def reporte_lecturas(request):
             total_consumo += consumo
             total_lecturas += 1
 
-    # Ordenar
     filas.sort(key=lambda x: (
         x["usuario"].sector.nombre if x["usuario"].sector else "",
         x["usuario"].apellido_paterno,
@@ -1275,12 +1330,13 @@ def reporte_lecturas(request):
     }
     return render(request, "reportes/reporte_lecturas.html", context)
 
-# =============Descargar APK============
-import os
-from django.conf import settings
-from django.http import FileResponse, Http404
+
+# =====================================================
+# DESCARGA APK
+# =====================================================
+
 @login_required
-@permission_required('sistema.view_lectura', raise_exception=True)
+@permission_required('sistema.view_sistemalectura', raise_exception=True)  # ✅ CORREGIDO
 def descargar_apk(request):
     apk_path = os.path.join(settings.MEDIA_ROOT, 'apk', 'app-release.apk')
     if not os.path.exists(apk_path):
@@ -1293,54 +1349,56 @@ def descargar_apk(request):
         content_type='application/vnd.android.package-archive',
     )
 
-from rest_framework import viewsets, permissions
-import json
-from rest_framework.permissions import DjangoModelPermissions
-from .models import (
-    SistemaUsuario, SistemaEvento, SistemaAsistencia,
-    SistemaLectura, SistemaPago, SistemaMedidor, SistemaTarifa
-)
-from .serializers import (
-    SistemaUsuarioSerializer, SistemaEventoSerializer, SistemaAsistenciaSerializer,
-    SistemaLecturaSerializer, SistemaPagoSerializer, SistemaMedidorSerializer,
-    SistemaTarifaSerializer
-)
 
+# =====================================================
+# API REST - VIEWSETS
+# =====================================================
 
 class SistemaUsuarioViewSet(viewsets.ModelViewSet):
     queryset = SistemaUsuario.objects.all()
     serializer_class = SistemaUsuarioSerializer
     permission_classes = [permissions.IsAuthenticated, DjangoModelPermissions]
 
+
 class SistemaEventoViewSet(viewsets.ModelViewSet):
     queryset = SistemaEvento.objects.all()
     serializer_class = SistemaEventoSerializer
     permission_classes = [permissions.IsAuthenticated, DjangoModelPermissions]
+
 
 class SistemaAsistenciaViewSet(viewsets.ModelViewSet):
     queryset = SistemaAsistencia.objects.all()
     serializer_class = SistemaAsistenciaSerializer
     permission_classes = [permissions.IsAuthenticated, DjangoModelPermissions]
 
+
 class SistemaTarifaViewSet(viewsets.ModelViewSet):
     queryset = SistemaTarifa.objects.all()
     serializer_class = SistemaTarifaSerializer
     permission_classes = [permissions.IsAuthenticated, DjangoModelPermissions]
+
 
 class SistemaMedidorViewSet(viewsets.ModelViewSet):
     queryset = SistemaMedidor.objects.all()
     serializer_class = SistemaMedidorSerializer
     permission_classes = [permissions.IsAuthenticated, DjangoModelPermissions]
 
+
 class SistemaLecturaViewSet(viewsets.ModelViewSet):
     queryset = SistemaLectura.objects.all()
     serializer_class = SistemaLecturaSerializer
     permission_classes = [permissions.IsAuthenticated, DjangoModelPermissions]
 
+
 class SistemaPagoViewSet(viewsets.ModelViewSet):
     queryset = SistemaPago.objects.all()
     serializer_class = SistemaPagoSerializer
     permission_classes = [permissions.IsAuthenticated, DjangoModelPermissions]
+
+
+# =====================================================
+# ADMINISTRACIÓN DE GRUPOS Y USUARIOS
+# =====================================================
 
 TRADUCCIONES_PERMISOS = {
     # SistemaAsistencia
@@ -1406,7 +1464,6 @@ NOMBRES_MODELOS = {
 
 def obtener_permisos_sistema():
     """Obtiene solo los permisos de los modelos del sistema, traducidos"""
-    # Lista de modelos permitidos
     modelos_permitidos = [
         'sistemaasistencia',
         'sistemaevento', 
@@ -1418,18 +1475,15 @@ def obtener_permisos_sistema():
         'sistemausuario',
     ]
     
-    # Obtener content types de estos modelos
     content_types = ContentType.objects.filter(
         app_label='sistema',
         model__in=modelos_permitidos
     )
     
-    # Obtener permisos
     permisos = Permission.objects.filter(
         content_type__in=content_types
     ).select_related('content_type').order_by('content_type__model', 'codename')
     
-    # Agrupar por modelo con traducción
     permisos_agrupados = {}
     for p in permisos:
         modelo_key = p.content_type.model
@@ -1438,7 +1492,6 @@ def obtener_permisos_sistema():
         if modelo_nombre not in permisos_agrupados:
             permisos_agrupados[modelo_nombre] = []
         
-        # Traducir el nombre del permiso
         permiso_traducido = TRADUCCIONES_PERMISOS.get(p.codename, p.name)
         
         permisos_agrupados[modelo_nombre].append({
@@ -1449,9 +1502,11 @@ def obtener_permisos_sistema():
     
     return permisos_agrupados
 
+
 def es_admin(user):
     """Verifica si el usuario es superusuario o staff"""
     return user.is_superuser or user.is_staff
+
 
 @login_required
 def admin_grupos(request):
@@ -1465,6 +1520,8 @@ def admin_grupos(request):
     return render(request, 'admin/grupos_lista.html', {
         'grupos': grupos,
     })
+
+
 @login_required
 def admin_grupo_eliminar(request, grupo_id):
     """Eliminar grupo"""
@@ -1474,7 +1531,6 @@ def admin_grupo_eliminar(request, grupo_id):
     
     grupo = get_object_or_404(Group, id=grupo_id)
     
-    # Verificar si tiene usuarios asignados
     usuarios_count = grupo.user_set.count()
     if usuarios_count > 0:
         messages.error(request, f'No se puede eliminar el grupo. Tiene {usuarios_count} usuario(s) asignado(s).')
@@ -1484,6 +1540,7 @@ def admin_grupo_eliminar(request, grupo_id):
     grupo.delete()
     messages.success(request, f'Grupo "{nombre}" eliminado exitosamente.')
     return redirect('admin_grupos')
+
 
 @login_required
 def admin_usuarios_sistema(request):
@@ -1497,6 +1554,7 @@ def admin_usuarios_sistema(request):
     return render(request, 'admin/usuarios_lista.html', {
         'usuarios': usuarios,
     })
+
 
 @login_required
 def admin_usuario_eliminar(request, usuario_id):
@@ -1519,6 +1577,7 @@ def admin_usuario_eliminar(request, usuario_id):
     usuario.delete()
     messages.success(request, f'Usuario "{username}" eliminado exitosamente.')
     return redirect('admin_usuarios_sistema')
+
 
 @login_required
 def admin_grupo_crear(request):
@@ -1569,7 +1628,6 @@ def admin_grupo_editar(request, grupo_id):
     
     permisos_agrupados = obtener_permisos_sistema()
     
-    # IDs de permisos actuales
     permisos_actuales = list(grupo.permissions.values_list('id', flat=True))
     
     if request.method == 'POST':
@@ -1729,20 +1787,14 @@ def admin_usuario_editar(request, usuario_id):
     })
 
 
-# sistema/views.py
-
-from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework.response import Response
-from rest_framework import status
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
-
+# =====================================================
+# AUTENTICACIÓN APP MÓVIL (JWT)
+# =====================================================
 
 class AppMovilTokenObtainPairView(TokenObtainPairView):
     """
     Login personalizado para la app móvil.
-    Rechaza si el usuario no es Operador o Superuser.
+    Solo permite acceso a usuarios del grupo 'Operador' o superusuarios.
     """
     
     def post(self, request, *args, **kwargs):

@@ -26,11 +26,12 @@
             <td>{{ usuario.telefono }}</td>
             <td>{{ usuario.sector.nombre }}</td>
             <td>
-                
+                {% if perms.sistema.change_sistemausuario %}
                 <a class="btn btn-primary" href="{% url 'edit_user' usuario.id %}">Editar</a>
-                
+                {% endif %}
+                {% if perms.sistema.delete_sistemausuario %}
                 <a class="btn btn-danger" href="{% url 'delete_user' usuario.id %}" onclick="return confirm('¿Estás seguro de eliminar este usuario?')">Eliminar</a>
-                
+                {% endif %}
             </td>
         </tr>
         {% endfor %}

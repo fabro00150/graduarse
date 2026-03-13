@@ -1,7 +1,7 @@
 {% extends "index.html" %}
 {% block content %}
 <h1>Medidores</h1>
-{% if perms.sistema.add_sismedidor %}
+{% if perms.sistema.add_sistemamedidor %}
 <a href="{% url 'new_medidor' %}" class="btn btn-primary mb-3">Nuevo medidor</a>
 {% endif %}
 <a href="{% url 'mapa_general_medidores' %}" class="btn btn-info mb-3">
@@ -34,10 +34,10 @@
       <td>{{ m.fecha_instalacion }}</td>
       <td>{{ m.observaciones|default:"-" }}</td>
       <td>
-        {% if perms.sistema.edit_sismedidor %}
+        {% if perms.sistema.change_sistemamedidor %}
         <a href="{% url 'edit_medidor' m.id %}" class="btn btn-sm btn-warning">Editar</a>
         {% endif %}
-        {% if perms.sistema.delete_sismedidor %}
+        {% if perms.sistema.delete_sistemamedidor %}
         {% if not m.tiene_lecturas %}
           <a href="{% url 'delete_medidor' m.id %}" class="btn btn-sm btn-danger"
             onclick="return confirm('¿Eliminar medidor?');">

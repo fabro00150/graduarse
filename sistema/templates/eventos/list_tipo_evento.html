@@ -1,98 +1,224 @@
 {% extends 'index.html' %}
+{% load static %}
+
 {% block content %}
 
-<h1>Lista de Tipos de Eventos</h1>
-
-<div class="table-responsive">
-    <table id="table_tipo_eventos" class="display table table-striped table-bordered">
-        <thead>
-            <tr>
-                {% if user.is_staff %}
-                <th>ID</th>
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    <i class="ti ti-calendar-event me-2"></i>
+                    Lista de Tipos de Eventos
+                </h4>
+                {% if perms.sistema.add_sistemaevento %}
+                <a href="{% url 'new_tipo_evento' %}" class="btn btn-primary btn-sm">
+                    <i class="ti ti-plus"></i> Crear evento
+                </a>
                 {% endif %}
-                <th>Nombre</th>
-                <th>Fecha</th>
-                <th>Lugar</th>
-                <th>Descripción</th>
-                <th>Acciones</th>
-                <th>Registrar</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for tipo_evento in tipo_eventos %}
-            <tr>
-                {% if user.is_staff %}
-                <td>{{ tipo_evento.id }}</td>
-                {% endif %}
-                <td>{{ tipo_evento.nombre }}</td>
-                <td>{{ tipo_evento.fecha }}</td>
-                <td>{{ tipo_evento.lugar }}</td>
-                <td>{{ tipo_evento.descripcion }}</td>
-                <td>
-                    {% if perms.sistema.change_sistemaevento %}
-                    <a href="{% url 'edit_tipo_evento' tipo_evento.id %}" 
-                       class="btn btn-warning btn-sm" title="Editar">
-                        <i class="ti ti-edit"></i>
-                    </a>
-                    {% endif %}
-                    
-                    {% if perms.sistema.delete_sistemaevento %}
-                    <a href="{% url 'delete_tipo_evento' tipo_evento.id %}" 
-                       class="btn btn-danger btn-sm" 
-                       title="Eliminar"
-                       onclick="return confirm('¿Eliminar este evento?')">
-                        <i class="ti ti-trash"></i>
-                    </a>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if perms.sistema.edit_sistemaasistencia %}
-                    <a href="{% url 'asistencia_evento' tipo_evento.id %}" 
-                       class="btn btn-success btn-sm">
-                        Registrar asistencias
-                    </a>
-                    {% endif %}
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="7" class="text-center text-muted">No hay eventos registrados</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="table_tipo_eventos" class="display table table-striped table-bordered" style="width:100%">
+                        <thead>
+                            <tr>
+                                {% if user.is_staff %}
+                                <th class="text-center" style="width: 60px;">ID</th>
+                                {% endif %}
+                                <th>Nombre</th>
+                                <th class="text-center">Fecha</th>
+                                <th>Lugar</th>
+                                <th>Descripción</th>
+                                <th class="text-center" style="width: 120px;">Acciones</th>
+                                <th class="text-center" style="width: 150px;">Asistencia</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tipo_evento in tipo_eventos %}
+                            <tr>
+                                {% if user.is_staff %}
+                                <td class="text-center">{{ tipo_evento.id }}</td>
+                                {% endif %}
+                                <td>
+                                    <strong>{{ tipo_evento.nombre }}</strong>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-info">
+                                        {{ tipo_evento.fecha|date:"d/m/Y" }}
+                                    </span>
+                                </td>
+                                <td>{{ tipo_evento.lugar|default:"-" }}</td>
+                                <td>
+                                    {% if tipo_evento.descripcion %}
+                                        {{ tipo_evento.descripcion|truncatewords:10 }}
+                                    {% else %}
+                                        <span class="text-muted">Sin descripción</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        {% if perms.sistema.change_sistemaevento %}
+                                        <a href="{% url 'edit_tipo_evento' tipo_evento.id %}" 
+                                           class="btn btn-warning btn-sm" 
+                                           title="Editar evento"
+                                           data-bs-toggle="tooltip">
+                                            <i class="ti ti-edit"></i>
+                                        </a>
+                                        {% endif %}
+                                        
+                                        {% if perms.sistema.delete_sistemaevento %}
+                                        <button type="button" 
+                                                class="btn btn-danger btn-sm" 
+                                                title="Eliminar evento"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#deleteModal"
+                                                data-id="{{ tipo_evento.id }}"
+                                                data-nombre="{{ tipo_evento.nombre }}">
+                                            <i class="ti ti-trash"></i>
+                                        </button>
+                                        {% endif %}
+                                        
+                                        {% if not perms.sistema.change_sistemaevento and not perms.sistema.delete_sistemaevento %}
+                                        <span class="text-muted small">Sin acciones</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    {% if perms.sistema.change_sistemaasistencia %}
+                                    <a href="{% url 'asistencia_evento' tipo_evento.id %}" 
+                                       class="btn btn-success btn-sm">
+                                        <i class="ti ti-users me-1"></i>
+                                        Registrar
+                                    </a>
+                                    {% else %}
+                                    <a href="{% url 'asistencia_evento' tipo_evento.id %}" 
+                                       class="btn btn-outline-success btn-sm">
+                                        <i class="ti ti-eye me-1"></i>
+                                        Ver
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center py-4">
+                                    <div class="text-muted">
+                                        <i class="ti ti-calendar-off fs-1 d-block mb-2"></i>
+                                        No hay eventos registrados
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-{% if perms.sistema.add_sistemaevento %}
-<a href="{% url 'new_tipo_evento' %}" class="btn btn-primary">
-    <i class="ti ti-plus"></i> Crear evento
-</a>
-{% endif %}
+<!-- Modal de confirmación para eliminar -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel">
+                    <i class="ti ti-alert-triangle me-2"></i>
+                    Confirmar eliminación
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro que desea eliminar el evento <strong id="eventoNombre"></strong>?</p>
+                <p class="text-danger small mb-0">
+                    <i class="ti ti-alert me-1"></i>
+                    Esta acción no se puede deshacer.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="ti ti-x me-1"></i> Cancelar
+                </button>
+                <a href="#" id="confirmDeleteBtn" class="btn btn-danger">
+                    <i class="ti ti-trash me-1"></i> Eliminar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 
+{% endblock %}
+
+{% block scripts %}
 <script>
     $(document).ready(function() {
-        $('#table_tipo_eventos').DataTable({
-            "language": {
-                "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
+        // Inicializar DataTable
+        var table = $('#table_tipo_eventos').DataTable({
+            language: {
+                url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
             },
-            "pageLength": 10,
-            "order": [[0, "desc"]]
+            pageLength: 10,
+            order: [[0, "desc"]],
+            responsive: true,
+            columnDefs: [
+                { orderable: false, targets: [-1, -2] } // Desordenar columnas de acciones
+            ]
+        });
+
+        // Inicializar tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        // Configurar modal de eliminación
+        $('#deleteModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var id = button.data('id');
+            var nombre = button.data('nombre');
+            
+            var modal = $(this);
+            modal.find('#eventoNombre').text(nombre);
+            modal.find('#confirmDeleteBtn').attr('href', '/tipo_evento/delete/' + id + '/');
         });
     });
 </script>
 
-{% if messages %}    
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            {% for message in messages %}
-            iziToast.success({
-                title: '{{ message.tags|title }}',
-                message: '{{ message }}',
-                position: 'topRight'
-            });
-            {% endfor %}
+{% if messages %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        {% for message in messages %}
+        {% if message.tags == 'success' %}
+        iziToast.success({
+            title: 'Éxito',
+            message: '{{ message|escapejs }}',
+            position: 'topRight',
+            timeout: 5000
         });
-    </script>
+        {% elif message.tags == 'error' %}
+        iziToast.error({
+            title: 'Error',
+            message: '{{ message|escapejs }}',
+            position: 'topRight',
+            timeout: 5000
+        });
+        {% elif message.tags == 'warning' %}
+        iziToast.warning({
+            title: 'Advertencia',
+            message: '{{ message|escapejs }}',
+            position: 'topRight',
+            timeout: 5000
+        });
+        {% else %}
+        iziToast.info({
+            title: 'Info',
+            message: '{{ message|escapejs }}',
+            position: 'topRight',
+            timeout: 5000
+        });
+        {% endif %}
+        {% endfor %}
+    });
+</script>
 {% endif %}
-
 {% endblock %}
