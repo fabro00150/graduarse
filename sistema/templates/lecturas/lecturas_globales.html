@@ -2,116 +2,115 @@
 {% load static %}
 {% block content %}
 
-<h1>Lecturas de todos los usuarios</h1>
+<div class="container-fluid px-2 px-md-4">
+  <h1 class="h4 h-md-1 mb-3 mb-md-4">Lecturas de todos los usuarios</h1>
 
-<form method="get" action="{% url 'lecturas_globales' %}" class="row g-3 mb-3">  
-  <div class="row mb-3">
-    <div class="col-md-3">
-      <label class="form-label">Año</label>
-      <p class="form-control-plaintext">{{ anio_actual }}</p>
-      <input type="hidden" name="anio" value="{{ anio_actual }}">
+  <form method="get" action="{% url 'lecturas_globales' %}" class="row g-2 g-md-3 mb-3 mb-md-4">  
+    <div class="row g-2 g-md-3 mb-2 mb-md-3">
+      <div class="col-6 col-md-3">
+        <label class="form-label fw-semibold small">Año</label>
+        <p class="form-control-plaintext mb-0">{{ anio_actual }}</p>
+        <input type="hidden" name="anio" value="{{ anio_actual }}">
+      </div>
+
+      <div class="col-6 col-md-3">
+        <label class="form-label fw-semibold small">Mes</label>
+        <p class="form-control-plaintext mb-0">
+          {% for m, nombre in lista_meses %}
+            {% if m == mes_actual %}
+              {{ nombre }} ({{ mes_actual }})
+            {% endif %}
+          {% endfor %}
+        </p>
+        <input type="hidden" name="mes" value="{{ mes_actual }}">
+      </div>
+    </div>
+  </form>
+
+  <form method="post" action="{% url 'save_lecturas_globales' %}" id="form_lecturas">
+    {% csrf_token %}
+    <input type="hidden" name="anio" value="{{ anio_actual }}">
+    <input type="hidden" name="mes" value="{{ mes_actual }}">
+
+    <!-- Tabla desplazable horizontalmente -->
+    <div class="table-responsive border rounded">
+      <table class="table table-striped table-bordered mb-0" id="table_lecturas" style="min-width: 900px;">
+        <thead class="table-light">
+          <tr>
+            <th style="min-width: 30px;">Sector</th>
+            <th style="min-width: 60px;">Cédula</th>
+            <th style="min-width: 120px;">Usuario</th>
+            <th style="min-width: 80px;">Medidor</th>
+            <th style="min-width: 60px;">Lectura anterior</th>
+            <th style="min-width: 70px;">Lectura actual</th>
+            <th style="min-width: 20px;">Consumo</th>
+            <th style="min-width: 20px;">Pagado</th>
+            <th style="min-width: 30px;">Foto</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in usuarios %}
+          <tr class="{% if item.consumo and item.consumo > 20 %}table-danger{% endif %}">
+            <td>{{ item.usuario.sector.nombre }}</td>
+            <td>{{ item.usuario.dni_cedula }}</td>
+            <td>{{ item.usuario.apellido_paterno }} {{ item.usuario.apellido_materno }} {{ item.usuario.nombres }}</td>
+            <td>
+              {% if item.medidor %}
+                {{ item.medidor.numero_serie }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td>
+              <input type="number"
+                    class="form-control form-control-sm"
+                    value="{{ item.lectura_anterior }}"
+                    disabled>
+            </td>
+            <td>
+              {% if item.pagado %}
+                <input type="number" class="form-control form-control-sm"
+                      value="{{ item.lectura_actual }}"
+                      disabled>
+                <small class="text-muted" style="font-size: 0.7rem;">No editable</small>
+              {% else %}
+                <input type="number"
+                      name="lectura_actual_{{ item.medidor.id }}"
+                      value="{{ item.lectura_actual }}"
+                      class="form-control form-control-sm lectura-actual"
+                      max="99999"
+                      data-anterior="{{ item.lectura_anterior }}">
+              {% endif %}
+            </td>
+            <td>
+              <input type="text" class="form-control form-control-sm consumo" value="{{ item.consumo }}" disabled>
+            </td>
+            <td class="text-center align-middle">
+              {% if item.pagado %}
+                <span class="badge bg-success">Sí</span>
+              {% else %}
+                <span class="badge bg-secondary">No</span>
+              {% endif %}
+            </td>
+            <td class="text-center align-middle">
+              {% if item.foto_url %}
+                <a href="{{ item.foto_url }}" target="_blank"
+                  class="btn btn-outline-secondary btn-sm" title="Ver foto">
+                  <i class="ti ti-eye"></i>
+                </a>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
 
-    <div class="col-md-3">
-      <label class="form-label">Mes</label>
-      <p class="form-control-plaintext">
-        {% for m, nombre in lista_meses %}
-          {% if m == mes_actual %}
-            {{ nombre }} ({{ mes_actual }})
-          {% endif %}
-        {% endfor %}
-      </p>
-      <input type="hidden" name="mes" value="{{ mes_actual }}">
-    </div>
-  </div>
-</form>
-
-<form method="post" action="{% url 'save_lecturas_globales' %}" id="form_lecturas">
-  {% csrf_token %}
-  <input type="hidden" name="anio" value="{{ anio_actual }}">
-  <input type="hidden" name="mes" value="{{ mes_actual }}">
-
-  <table class="table table-striped table-bordered" id="table_lecturas">
-    <thead>
-      <tr>
-        <th>Sector</th>
-        <th>Cédula</th>
-        <th>Usuario</th>
-        <th>Medidor</th>
-        <th>Lectura anterior</th>
-        <th>Lectura actual</th>
-        <th>Consumo</th>
-        <th>Pagado</th>
-        <th>Foto</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for item in usuarios %}
-      <tr class="{% if item.consumo and item.consumo > 20 %}table-danger{% endif %}">
-        <td>{{ item.usuario.sector.nombre }}</td>
-        <td>{{ item.usuario.dni_cedula }}</td>
-        <td>{{ item.usuario.apellido_paterno }} {{ item.usuario.apellido_materno }} {{ item.usuario.nombres }}</td>
-        <td>
-          {% if item.medidor %}
-            {{ item.medidor.numero_serie }}
-          {% else %}
-            —
-          {% endif %}
-        </td>
-        <td>
-          <input type="number"
-                class="form-control"
-                value="{{ item.lectura_anterior }}"
-                disabled>
-        </td>
-        <td style="width: 150px;">
-          {% if item.pagado %}
-            <input type="number" class="form-control"
-                  value="{{ item.lectura_actual }}"
-                  disabled>
-            <small class="text-muted">Mes pagado, no editable</small>
-          {% else %}
-            <input type="number"
-                  name="lectura_actual_{{ item.medidor.id }}"
-                  value="{{ item.lectura_actual }}"
-                  class="form-control lectura-actual"
-                  max="99999"
-                  {% if not perms.sistema.change_sistemalectura %}
-                  disabled
-                  {% endif %}
-                  data-anterior="{{ item.lectura_anterior }}">
-          {% endif %}
-        </td>
-        <td>
-          <input type="text" class="form-control consumo" value="{{ item.consumo }}" disabled>
-        </td>
-        <td>
-          {% if item.pagado %}
-            <span class="badge bg-success">Sí</span>
-          {% else %}
-            <span class="badge bg-secondary">No</span>
-          {% endif %}
-        </td>
-        <td>
-          {% if item.foto_url %}
-            <a href="{{ item.foto_url }}" target="_blank"
-              class="btn btn-outline-secondary btn-sm" title="Ver foto">
-              <i class="ti ti-eye"></i>
-            </a>
-          {% else %}
-            —
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-
-  </table>
-  
-  {% if perms.sistema.change_sistemalectura %}
-  <button type="submit" class="btn btn-success">Guardar lecturas</button>
-  {% endif %}
-</form>
+    <button type="submit" class="btn btn-success mt-3">Guardar lecturas</button>
+  </form>
+</div>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
@@ -178,7 +177,8 @@ document.addEventListener("DOMContentLoaded", function () {
         url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
       },
       pageLength: 10,
-      order: [[0, "desc"]]
+      order: [[0, "desc"]],
+      scrollX: true
     });
   }
 });

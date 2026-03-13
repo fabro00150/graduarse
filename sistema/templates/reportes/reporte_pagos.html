@@ -2,97 +2,105 @@
 {% load static %}
 {% block content %}
 
-<h1>Reporte de Pagos</h1>
+<div class="container-fluid px-2 px-md-4">
+  <h1 class="h4 h-md-1 mb-3 mb-md-4">Reporte de Pagos</h1>
 
-<form method="get" action="{% url 'reporte_pagos' %}" class="row g-3 mb-3">
-  <div class="col-md-2">
-    <label class="form-label">Año</label>
-    <select name="anio" class="form-select">
-      {% for a in lista_anios %}
-        <option value="{{ a }}" {% if a == anio %}selected{% endif %}>{{ a }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="col-md-2">
-    <label class="form-label">Mes</label>
-    <select name="mes" class="form-select">
-      <option value="">Todos</option>
-      {% for m_val, m_nom in lista_meses %}
-        <option value="{{ m_val }}" {% if m_val == mes %}selected{% endif %}>{{ m_nom }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="col-md-3">
-    <label class="form-label">Sector</label>
-    <select name="sector" class="form-select">
-      <option value="">Todos</option>
-      {% for s in sectores %}
-        <option value="{{ s.id }}" {% if s.id|stringformat:"s" == sector_id %}selected{% endif %}>{{ s.nombre }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="col-md-3">
-    <label class="form-label">Estado</label>
-    <select name="estado" class="form-select">
-      <option value="">Todos</option>
-      <option value="pagado" {% if estado == "pagado" %}selected{% endif %}>Pagado</option>
-      <option value="pendiente" {% if estado == "pendiente" %}selected{% endif %}>Pendiente</option>
-    </select>
-  </div>
-  <div class="col-md-2 align-self-end">
-    <button type="submit" class="btn btn-primary w-100">Filtrar</button>
-  </div>
-</form>
+  <form method="get" action="{% url 'reporte_pagos' %}" class="row g-2 g-md-3 mb-3 mb-md-4">
+    <div class="col-6 col-md-2">
+      <label class="form-label fw-semibold small">Año</label>
+      <select name="anio" class="form-select">
+        {% for a in lista_anios %}
+          <option value="{{ a }}" {% if a == anio %}selected{% endif %}>{{ a }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-2">
+      <label class="form-label fw-semibold small">Mes</label>
+      <select name="mes" class="form-select">
+        <option value="">Todos</option>
+        {% for m_val, m_nom in lista_meses %}
+          <option value="{{ m_val }}" {% if m_val == mes %}selected{% endif %}>{{ m_nom }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-3">
+      <label class="form-label fw-semibold small">Sector</label>
+      <select name="sector" class="form-select">
+        <option value="">Todos</option>
+        {% for s in sectores %}
+          <option value="{{ s.id }}" {% if s.id|stringformat:"s" == sector_id %}selected{% endif %}>{{ s.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-3">
+      <label class="form-label fw-semibold small">Estado</label>
+      <select name="estado" class="form-select">
+        <option value="">Todos</option>
+        <option value="pagado" {% if estado == "pagado" %}selected{% endif %}>Pagado</option>
+        <option value="pendiente" {% if estado == "pendiente" %}selected{% endif %}>Pendiente</option>
+      </select>
+    </div>
+    <div class="col-12 col-md-2 align-self-end">
+      <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+    </div>
+  </form>
 
-<table id="table_reporte_pagos" class="display table table-striped table-bordered">
-  <thead>
-    <tr>
-      <th>Año</th>
-      <th>Mes</th>
-      <th>DNI/Cédula</th>
-      <th>Usuario</th>
-      <th>Sector</th>
-      <th>Medidor</th>
-      <th>Consumo m³</th>
-      <th>Monto</th>
-      <th>Estado</th>
-      <th>Fecha pago</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for fila in filas %}
-    <tr>
-      <td>{{ fila.anio }}</td>
-      <td>{{ fila.mes }}</td>
-      <td>{{ fila.usuario.dni_cedula }}</td>
-      <td>{{ fila.usuario.apellido_paterno }} {{ fila.usuario.apellido_materno }} {{ fila.usuario.nombres }}</td>
-      <td>{{ fila.sector.nombre }}</td>
-      <td>{{ fila.medidor.numero_serie|default:"-" }}</td>
-      <td>{{ fila.consumo|default:"-" }}</td>
-      <td>
-        {% if fila.monto %}
-          ${{ fila.monto|floatformat:2 }}
-        {% else %}
-          -
-        {% endif %}
-      </td>
-      <td>
-        {% if fila.pagado %}
-          <span class="badge bg-success">Pagado</span>
-        {% else %}
-          <span class="badge bg-warning">Pendiente</span>
-        {% endif %}
-      </td>
-      <td>{{ fila.fecha_pago|date:"d/m/Y"|default:"-" }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+  <div class="table-responsive border rounded">
+    <table id="table_reporte_pagos" class="display table table-striped table-bordered mb-0" style="min-width: 1100px;">
+      <thead class="table-light">
+        <tr>
+          <th style="min-width: 20px;">Año</th>
+          <th style="min-width: 20px;">Mes</th>
+          <th style="min-width: 40px;">DNI/Cédula</th>
+          <th style="min-width: 160px;">Usuario</th>
+          <th style="min-width: 50px;">Sector</th>
+          <th style="min-width: 80px;">Medidor</th>
+          <th style="min-width: 70px;">Consumo m³</th>
+          <th style="min-width: 30px;">Monto</th>
+          <th style="min-width: 80px;">Estado</th>
+          <th style="min-width: 100px;">Fecha pago</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for fila in filas %}
+        <tr>
+          <td>{{ fila.anio }}</td>
+          <td>{{ fila.mes }}</td>
+          <td>{{ fila.usuario.dni_cedula }}</td>
+          <td>{{ fila.usuario.apellido_paterno }} {{ fila.usuario.apellido_materno }} {{ fila.usuario.nombres }}</td>
+          <td>{{ fila.sector.nombre }}</td>
+          <td>{{ fila.medidor.numero_serie|default:"-" }}</td>
+          <td>{{ fila.consumo|default:"-" }}</td>
+          <td>
+            {% if fila.monto %}
+              ${{ fila.monto|floatformat:2 }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td>
+            {% if fila.pagado %}
+              <span class="badge bg-success">Pagado</span>
+            {% else %}
+              <span class="badge bg-warning">Pendiente</span>
+            {% endif %}
+          </td>
+          <td>{{ fila.fecha_pago|date:"d/m/Y"|default:"-" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="10" class="text-center text-muted py-4">No hay registros</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
-<!-- Usuario que exporta -->
-<div class="alert alert-info mt-3">
-  <strong>Generado el:</strong> {% now "d/m/Y H:i:s" %} | 
-  <strong>Generado por:</strong> {{ usuario_logueado.get_full_name|default:usuario_logueado.username }}
+  <!-- Usuario que exporta -->
+  <div class="alert alert-info mt-3 small">
+    <strong>Generado el:</strong> {% now "d/m/Y H:i:s" %} <br class="d-md-none">
+    <strong>Generado por:</strong> {{ usuario_logueado.get_full_name|default:usuario_logueado.username }}
+  </div>
 </div>
 
 <script>
@@ -106,6 +114,7 @@
       },
       pageLength: 25,
       order: [[0, "desc"], [1, "desc"]],
+      scrollX: true,
       dom: 'Bfrtip',
       buttons: [
         {

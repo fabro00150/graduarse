@@ -1,53 +1,76 @@
 {% extends 'index.html' %}
 {% block content %}
-<h1>Lista de Sectores</h1>
-<table id="table_sectors" class="display table table-striped table-bordered">
-    <thead>
+
+<div class="container-fluid px-2 px-md-4">
+  <h1 class="h4 h-md-1 mb-3 mb-md-4">Lista de Sectores</h1>
+
+  <div class="table-responsive border rounded">
+    <table id="table_sectors" class="display table table-striped table-bordered mb-0" style="min-width: 700px;">
+      <thead class="table-light">
         <tr>
-            {% if user.is_staff %}
-            <th>ID</th>
-            {% endif %}
-            <th>Nombre</th>
-            <th>Descripción</th>
-            <th>Estado</th>
-            <th>Acciones</th>            
+          {% if user.is_staff %}
+          <th style="min-width: 60px;">ID</th>
+          {% endif %}
+          <th style="min-width: 200px;">Nombre</th>
+          <th style="min-width: 200px;">Descripción</th>
+          <th style="min-width: 150px;">Estado</th>
+          <th style="min-width: 135px;">Acciones</th>            
         </tr>
-    </thead>
-    <tbody>
+      </thead>
+      <tbody>
         {% for sector in sectores %}
         <tr>
-            {% if user.is_staff %}
-            <td>{{ sector.id }}</td>
-            {% endif %}
-            <td>{{ sector.nombre }}</td>
-            <td>{{ sector.descripcion }}</td>
-            <td>{{ sector.estado }}</td>
-            <td>
-                {% if perms.sistema.change_sistemasector %}
-                <a href="{% url 'edit_sector' sector.id %}"><i class="ti ti-edit"></i></a>
-                {% endif %}
-            </td>
-            <td>
-                {% if perms.sistema.delete_sistemasector %}
-                <a href="{% url 'delete_sector' sector.id %}"><i class="ti ti-trash"></i></a>
-                {% endif %}
-            </td>
+          {% if user.is_staff %}
+          <td>{{ sector.id }}</td>
+          {% endif %}
+          <td>{{ sector.nombre }}</td>
+          <td>{{ sector.descripcion }}</td>
+          <td>{{ sector.estado }}</td>
+          <td>
+            <div class="d-flex gap-2">
+              {% if perms.sistema.change_sistemasector %}
+              <a href="{% url 'edit_sector' sector.id %}" class="btn btn-outline-primary btn-sm" title="Editar">
+                <i class="ti ti-edit"></i>
+              </a>
+              {% endif %}
+              {% if perms.sistema.delete_sistemasector %}
+              <a href="{% url 'delete_sector' sector.id %}" class="btn btn-outline-danger btn-sm" title="Eliminar" onclick="return confirm('¿Estás seguro de eliminar este sector?')">
+                <i class="ti ti-trash"></i>
+              </a>
+              {% endif %}
+            </div>
+          </td>
         </tr>
         {% endfor %}
-    </tbody>
-</table>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  $(document).ready(function() {
+    $('#table_sectors').DataTable({
+      language: {
+        url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
+      },
+      pageLength: 10,
+      order: [[0, "desc"]],
+      scrollX: true
+    });
+  });
+</script>
 
 {% if messages %}    
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            {% for message in messages %}
-            iziToast.success({
-                title: '{{ message.tags|title }}',
-                message: '{{ message }}',
-                position: 'topRight'
-            });
-            {% endfor %}
-        });
-    </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      {% for message in messages %}
+      iziToast.success({
+        title: '{{ message.tags|title }}',
+        message: '{{ message }}',
+        position: 'topRight'
+      });
+      {% endfor %}
+    });
+  </script>
 {% endif %}
 {% endblock %}

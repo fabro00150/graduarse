@@ -2,83 +2,89 @@
 {% load static %}
 {% block content %}
 
+<div class="container-fluid px-2 px-md-4">
+  <h1 class="h4 h-md-1 mb-3 mb-md-4">Lista de Clientes</h1>
 
-<h1>Lista de Clientes</h1>
-<table id="table_users" class="display table table-striped table-bordered">
-    <thead style="color: #1E1E1E;">
+  <div class="table-responsive border rounded">
+    <table id="table_users" class="display table table-striped table-bordered mb-0" style="min-width: 900px;">
+      <thead style="color: #1E1E1E;" class="table-light">
         <tr>
-            <th>Cédula</th>
-            <th>Nombres</th>
-            <th>Apellido Paterno</th>
-            <th>Apellido Materno</th>
-            <th>Telefono</th>
-            <th>Sector</th>
-            <th>Acciones</th>
+          <th style="min-width: 30px;">Cédula</th>
+          <th style="min-width: 120px;">Nombres</th>
+          <th style="min-width: 120px;">Apellido Paterno</th>
+          <th style="min-width: 90px;">Apellido Materno</th>
+          <th style="min-width: 100px;">Teléfono</th>
+          <th style="min-width: 20px;">Sector</th>
+          <th style="min-width: 10px;">Acciones</th>
         </tr>
-    </thead>
-    <tbody>
+      </thead>
+      <tbody>
         {% for usuario in usuarios %}
         <tr style="color: #1E1E1E;">
-            <td>{{ usuario.dni_cedula }}</td>
-            <td>{{ usuario.nombres }}</td>
-            <td>{{ usuario.apellido_paterno }}</td>
-            <td>{{ usuario.apellido_materno }}</td>
-            <td>{{ usuario.telefono }}</td>
-            <td>{{ usuario.sector.nombre }}</td>
-            <td>
-                {% if perms.sistema.change_sistemausuario %}
-                <a class="btn btn-primary" href="{% url 'edit_user' usuario.id %}">Editar</a>
-                {% endif %}
-                {% if perms.sistema.delete_sistemausuario %}
-                <a class="btn btn-danger" href="{% url 'delete_user' usuario.id %}" onclick="return confirm('¿Estás seguro de eliminar este usuario?')">Eliminar</a>
-                {% endif %}
-            </td>
+          <td>{{ usuario.dni_cedula }}</td>
+          <td>{{ usuario.nombres }}</td>
+          <td>{{ usuario.apellido_paterno }}</td>
+          <td>{{ usuario.apellido_materno }}</td>
+          <td>{{ usuario.telefono }}</td>
+          <td>{{ usuario.sector.nombre }}</td>
+          <td>
+            <div class="d-flex gap-1 flex-wrap">
+              {% if perms.sistema.change_sistemausuario %}
+              <a class="btn btn-primary btn-sm" href="{% url 'edit_user' usuario.id %}">Editar</a>
+              {% endif %}
+              {% if perms.sistema.delete_sistemausuario %}
+              <a class="btn btn-danger btn-sm" href="{% url 'delete_user' usuario.id %}" onclick="return confirm('¿Estás seguro de eliminar este usuario?')">Eliminar</a>
+              {% endif %}
+            </div>
+          </td>
         </tr>
         {% endfor %}
-    </tbody>
-</table>
+      </tbody>
+    </table>
+  </div>
+</div>
 
 <script>
-    $(document).ready(function() {
-        $('#table_users').DataTable({
-            language: {
-            url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
-            },
-            pageLength: 10,
-            order: [[0, "desc"]],
-            dom: 'Bfrtip',
-            buttons: [
-            {
-                extend: 'excelHtml5',
-                title: 'Usuarios'
-            },
-            {
-                extend: 'pdfHtml5',
-                title: 'Usuarios',
-                orientation: 'landscape',
-                pageSize: 'A4'
-            },
-            {
-                extend: 'print',
-                title: 'Usuarios'
-            }
-            ]
-        });
-        });
-
+  $(document).ready(function() {
+    $('#table_users').DataTable({
+      language: {
+        url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
+      },
+      pageLength: 10,
+      order: [[0, "desc"]],
+      scrollX: true,
+      dom: 'Bfrtip',
+      buttons: [
+        {
+          extend: 'excelHtml5',
+          title: 'Usuarios'
+        },
+        {
+          extend: 'pdfHtml5',
+          title: 'Usuarios',
+          orientation: 'landscape',
+          pageSize: 'A4'
+        },
+        {
+          extend: 'print',
+          title: 'Usuarios'
+        }
+      ]
+    });
+  });
 </script>
 
 {% if messages %}    
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            {% for message in messages %}
-            iziToast.success({
-                title: '{{ message.tags|title }}',
-                message: '{{ message }}',
-                position: 'topRight'
-            });
-            {% endfor %}
-        });
-    </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      {% for message in messages %}
+      iziToast.success({
+        title: '{{ message.tags|title }}',
+        message: '{{ message }}',
+        position: 'topRight'
+      });
+      {% endfor %}
+    });
+  </script>
 {% endif %}
 {% endblock %}
