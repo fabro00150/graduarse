@@ -22,4 +22,28 @@
     <button type="submit" class="btn btn-primary">Guardar</button>
     <a href="{% url 'list_tipo_eventos' %}" class="btn btn-secondary">Cancelar</a>
 </form>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const inputFecha = document.getElementById('fecha');
+        
+        // 1. Obtener la fecha actual
+        let ahora = new Date();
+        
+        // 2. Sumar 5 horas (5 * 60 * 60 * 1000 milisegundos)
+        ahora.setMilliseconds(ahora.getMilliseconds() + (5 * 60 * 60 * 1000));
+        
+        // 3. Formatear a YYYY-MM-DDTHH:MM (ajustando el desfase de zona horaria)
+        // Esto asegura que el formato sea el que entiende el navegador
+        const year = ahora.getFullYear();
+        const month = String(ahora.getMonth() + 1).padStart(2, '0');
+        const day = String(ahora.getDate()).padStart(2, '0');
+        const hours = String(ahora.getHours()).padStart(2, '0');
+        const minutes = String(ahora.getMinutes()).padStart(2, '0');
+        
+        const fechaMinima = `${year}-${month}-${day}T${hours}:${minutes}`;
+        
+        // 4. Asignar al atributo min del input
+        inputFecha.min = fechaMinima;
+    });
+</script>sss
 {% endblock %}
